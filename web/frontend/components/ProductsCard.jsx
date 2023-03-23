@@ -40,7 +40,6 @@ export function ProductsCard() {
   const handleDateChange = (event) => {
     
     setSelectedDate(event.target.value);
-    console.log(selectedDate)
   };
 
   const handleOptionChange = (event) => {
@@ -62,9 +61,9 @@ export function ProductsCard() {
 
   const submitHandler = async (e) => {
     e.preventDefault();
-
+    const product = await fetchProductById(selectedProduct.id);
     const scheduledActionObject = {
-      product: selectedProduct,
+      product: product,
       reservePrice,
       date: selectedDate,
       interval: {
@@ -73,8 +72,6 @@ export function ProductsCard() {
       },
     };
 
-    const product = await fetchProductById(selectedProduct.id);
-    console.log(await fetchProductById(selectedProduct.id))
     console.log(scheduledActionObject);
     setTempScheduledActions(oldArray => [...oldArray, scheduledActionObject])
     console.log(tempScheduledActions)
@@ -82,6 +79,7 @@ export function ProductsCard() {
 
   const titleStyle = {
     fontWeight: "600",
+    marginBottom: '0.7rem',
   };
 
   const inputDivStyle = {
@@ -90,6 +88,11 @@ export function ProductsCard() {
     marginBottom: "1.2rem",
     padding: "0.5rem",
   };
+
+  const inputStyle = {
+    height: "2.1876em",
+    width: "12rem",
+  }
 
   const tableStyle = {
     borderCollapse: "collapse",
@@ -132,14 +135,9 @@ export function ProductsCard() {
   const fetchProductById = async (id) => {
     try {
       const response = await fetch(`/api/products/${id}`);
-      if (response.ok) {
-        console.log(response)
-        const result = await response.json();
-        console.log(result)
-        return result;
-      }else{
-        console.log("response is not okay")
-      }
+      const result = await response.json();
+      console.log(result)
+      return result;
 
     } catch (error) {
       console.log(error)
@@ -163,12 +161,13 @@ export function ProductsCard() {
   };
 
   console.log("App Connected");
+  
 
   const fetchCollection = async () => {
     try {
       const response = await fetch("/api/collections/435393855790");
       const result = await response.json();
-      console.log(result.products);
+
       return await result.products;
     } catch (error) {
       console.log(error);
@@ -248,7 +247,7 @@ export function ProductsCard() {
 
         <div style={inputDivStyle}>
           <h2 style={titleStyle}>Reserve Price</h2>
-          <input label={reservePrice} {...bindReservePrice} />
+          <input style={inputStyle} label={reservePrice} {...bindReservePrice} />
         </div>
 
         <div style={inputDivStyle}>
@@ -295,7 +294,7 @@ export function ProductsCard() {
                 return(
                   <tr key={auction.id}>
                     <td style={tdStyle}>{auction?.product?.title}</td>
-                    <td style={tdStyle}>10</td>
+                    <td style={tdStyle}>{auction?.product?.variants[0]?.price}</td>
                     <td style={tdStyle}>{auction?.reservePrice}</td>
                     <td style={tdStyle}>{auction?.date}</td>
                     <td style={tdStyle}>{auction?.interval.value} {auction.interval.unit}</td>
