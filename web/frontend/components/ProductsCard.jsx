@@ -60,7 +60,7 @@ export function ProductsCard() {
     setDisplayProductList(!displayProductList);
   }
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
 
     const scheduledActionObject = {
@@ -73,6 +73,8 @@ export function ProductsCard() {
       },
     };
 
+    const product = await fetchProductById(selectedProduct.id);
+    console.log(await fetchProductById(selectedProduct.id))
     console.log(scheduledActionObject);
     setTempScheduledActions(oldArray => [...oldArray, scheduledActionObject])
     console.log(tempScheduledActions)
@@ -126,6 +128,23 @@ export function ProductsCard() {
   const toastMarkup = toastProps.content && !isRefetchingCount && (
     <Toast {...toastProps} onDismiss={() => setToastProps(emptyToastProps)} />
   );
+
+  const fetchProductById = async (id) => {
+    try {
+      const response = await fetch(`/api/products/${id}`);
+      if (response.ok) {
+        console.log(response)
+        const result = await response.json();
+        console.log(result)
+        return result;
+      }else{
+        console.log("response is not okay")
+      }
+
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   const handlePopulate = async () => {
     setIsLoading(true);
