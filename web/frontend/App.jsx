@@ -1,6 +1,5 @@
 import { BrowserRouter } from "react-router-dom";
 import { NavigationMenu } from "@shopify/app-bridge-react";
-import Modal from "./Component/Modal";
 import Routes from "./Routes";
 
 import {

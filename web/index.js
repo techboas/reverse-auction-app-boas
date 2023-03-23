@@ -73,6 +73,20 @@ app.get("/api/collections/435393855790", async(_req,res)=>{
   }
 })
 
+app.get("/api/products/:id", async(_req,res)=>{
+  try {
+    const response = shopify.api.rest.Collection.find({
+      session: res.locals.shopify.session,
+      id: _req.params.id
+    })
+
+    res.status(200).send(response)
+    
+  } catch (error) {
+    res.status(500).send(error)
+  }
+})
+
 
 app.get("/api/collections/435393855790", async(_req,res)=>{
   try {
