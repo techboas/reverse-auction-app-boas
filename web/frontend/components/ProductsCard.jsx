@@ -13,10 +13,11 @@ import { useAppQuery, useAuthenticatedFetch } from "../hooks";
 import Datetime from "react-datetime";
 import "react-datetime/css/react-datetime.css";
 import useInput from "./hooks/useInput";
+import moment from "moment";
+import Modal from "./Modal/Modal";
+import ProductPreview from "./ProductPreview";
 
 export function ProductsCard() {
- 
-
   const emptyToastProps = { content: null };
   const [isLoading, setIsLoading] = useState(true);
   const [toastProps, setToastProps] = useState(emptyToastProps);
@@ -24,22 +25,26 @@ export function ProductsCard() {
 
   const [selectedOption, setSelectedOption] = useState("");
   const [createMode, setCreateMode] = useState("single");
+  const [productModal, setProductModal] = useState(false);
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState({});
   const [displayProductList, setDisplayProductList] = useState(false);
 
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState();
   const [reservePrice, bindReservePrice, resetReservePrice] = useInput("");
   const [intervalValue, bindIntervalValue, resetIntervalValue] = useInput("");
   const [intervalUnit, bindIntervalUnit, resetIntervalUnit] =
     useInput("Minutes");
 
-  const [tempScheduledActions,setTempScheduledActions] = useState([]);
+  const [tempScheduledActions, setTempScheduledActions] = useState([]);
+
+  function isEmptyObject(obj) {
+    return JSON.stringify(obj) === "{}";
+  }
 
   const handleDateChange = (event) => {
-    
-    setSelectedDate(event.target.value);
+    console.log("--------", event);
   };
 
   const handleOptionChange = (event) => {
@@ -73,13 +78,17 @@ export function ProductsCard() {
     };
 
     console.log(scheduledActionObject);
-    setTempScheduledActions(oldArray => [...oldArray, scheduledActionObject])
-    console.log(tempScheduledActions)
+    setTempScheduledActions((oldArray) => [...oldArray, scheduledActionObject]);
+    console.log(tempScheduledActions);
+
+    resetReservePrice();
+    resetIntervalUnit();
+    resetIntervalValue();
   };
 
   const titleStyle = {
     fontWeight: "600",
-    marginBottom: '0.7rem',
+    marginBottom: "0.7rem",
   };
 
   const inputDivStyle = {
@@ -92,7 +101,7 @@ export function ProductsCard() {
   const inputStyle = {
     height: "2.1876em",
     width: "12rem",
-  }
+  };
 
   const tableStyle = {
     borderCollapse: "collapse",
@@ -113,7 +122,6 @@ export function ProductsCard() {
     padding: "8px",
   };
 
-
   const {
     data,
     refetch: refetchProductCount,
@@ -132,17 +140,20 @@ export function ProductsCard() {
     <Toast {...toastProps} onDismiss={() => setToastProps(emptyToastProps)} />
   );
 
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product);
+  };
+
   const fetchProductById = async (id) => {
     try {
       const response = await fetch(`/api/products/${id}`);
       const result = await response.json();
-      console.log(result)
+      console.log(result);
       return result;
-
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
   const handlePopulate = async () => {
     setIsLoading(true);
@@ -161,7 +172,6 @@ export function ProductsCard() {
   };
 
   console.log("App Connected");
-  
 
   const fetchCollection = async () => {
     try {
@@ -197,9 +207,9 @@ export function ProductsCard() {
           loading: isLoading,
         }}
       >
-        <Button onClick={handleProductClick}>Select Products</Button>
+        {/* <Button onClick={handleProductClick}>Select Products</Button> */}
 
-        <div style={inputDivStyle}>
+        {/* <div style={inputDivStyle}>
           {!displayProductList
             ? null
             : products.map((product) => {
@@ -213,7 +223,15 @@ export function ProductsCard() {
                   </div>
                 );
               })}
+        </div> */}
+        <div style={inputDivStyle}>
+          <Modal
+            products={products}
+            handleProductSelect={handleProductSelect}
+          />
+          {isEmptyObject(selectedProduct) ? null : <ProductPreview product={selectedProduct}/>}
         </div>
+
         {/* <div style={inputDivStyle}>
           <TextContainer spacing="loose">
             <p>
@@ -247,28 +265,37 @@ export function ProductsCard() {
 
         <div style={inputDivStyle}>
           <h2 style={titleStyle}>Reserve Price</h2>
-          <input style={inputStyle} label={reservePrice} {...bindReservePrice} />
+          <input
+            style={inputStyle}
+            label={reservePrice}
+            {...bindReservePrice}
+          />
         </div>
 
         <div style={inputDivStyle}>
           <h2 style={titleStyle}>First Auction Start Time</h2>
           <Datetime
+            closeOnSelect={true}
             class="Polaris-TextField__Input"
             value={selectedDate}
-            onChange={(e) => handleDateChange}
+            onChange={(date) => setSelectedDate(moment(date))}
             inputProps={{ placeholder: "Select date and time" }}
           />
         </div>
 
         <div style={inputDivStyle}>
-          <h2>Select an interval</h2>
-          <label>
+          <h2 style={titleStyle}>Select an interval</h2>
+          <label style={{ padding: "1rem", color: "black" }}>
             Time
-            <input type="number" {...bindIntervalValue} />
+            <input
+              type="number"
+              {...bindIntervalValue}
+              style={{ ...inputStyle, marginLeft: "0.6rem" }}
+            />
           </label>
-          <label>
+          <label style={{ padding: "1rem", color: "black" }}>
             Select a unit:
-            <select {...bindIntervalUnit}>
+            <select style={{ marginLeft: "0.6rem" }} {...bindIntervalUnit}>
               <option value="minutes">Minutes</option>
               <option value="hours">Hours</option>
               <option value="days">Days</option>
@@ -291,16 +318,25 @@ export function ProductsCard() {
             </thead>
             <tbody>
               {tempScheduledActions.map((auction) => {
-                return(
+                return (
                   <tr key={auction.id}>
-                    <td style={tdStyle}>{auction?.product?.title}</td>
-                    <td style={tdStyle}>{auction?.product?.variants[0]?.price}</td>
-                    <td style={tdStyle}>{auction?.reservePrice}</td>
-                    <td style={tdStyle}>{auction?.date}</td>
-                    <td style={tdStyle}>{auction?.interval.value} {auction.interval.unit}</td>
+                    <td key={auction.id} style={tdStyle}>
+                      {auction?.product?.title}
+                    </td>
+                    <td key={auction.id} style={tdStyle}>
+                      {auction?.product?.variants[0]?.price}
+                    </td>
+                    <td key={auction.id} style={tdStyle}>
+                      {auction?.reservePrice}
+                    </td>
+                    <td key={auction.id} style={tdStyle}>
+                      {auction?.date.year()}
+                    </td>
+                    <td key={auction.id} style={tdStyle}>
+                      {auction?.interval.value} {auction.interval.unit}
+                    </td>
                   </tr>
-                )
-
+                );
               })}
             </tbody>
           </table>
