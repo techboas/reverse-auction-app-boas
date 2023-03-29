@@ -7,6 +7,7 @@ import serveStatic from "serve-static";
 import shopify from "./shopify.js";
 import productCreator from "./product-creator.js";
 import GDPRWebhookHandlers from "./gdpr.js";
+import applyQrCodeApiEndpoints from "./middleware/auction-api.js";
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
 
@@ -32,9 +33,12 @@ app.post(
 // If you are adding routes outside of the /api path, remember to
 // also add a proxy rule for them in web/frontend/vite.config.js
 
+// All endpoints after this point will require an active session
 app.use("/api/*", shopify.validateAuthenticatedSession());
 
 app.use(express.json());
+
+
 
 app.get("/api/products/count", async (_req, res) => {
   const countData = await shopify.api.rest.Product.count({
@@ -73,18 +77,6 @@ app.get("/api/products/:id", async(_req,res)=>{
   }
 })
 
-
-app.get("/api/collections/435393855790", async(_req,res)=>{
-  try {
-    
-    
-  } catch (error) {
-    res.status(500).send(error)
-  }
-})
-
-
-
 //=============================== End of Product Fetch API ===================
 
 app.get("/api/products/create", async (_req, res) => {
@@ -101,6 +93,8 @@ app.get("/api/products/create", async (_req, res) => {
   res.status(status).send({ success: status === 200, error });
 });
 
+applyQrCodeApiEndpoints(app);
+
 app.use(serveStatic(STATIC_PATH, { index: false }));
 
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
@@ -109,5 +103,7 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
     .set("Content-Type", "text/html")
     .send(readFileSync(join(STATIC_PATH, "index.html")));
 });
+
+
 
 app.listen(PORT);

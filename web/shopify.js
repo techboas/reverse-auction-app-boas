@@ -2,8 +2,9 @@ import { BillingInterval, LATEST_API_VERSION } from "@shopify/shopify-api";
 import { shopifyApp } from "@shopify/shopify-app-express";
 import { SQLiteSessionStorage } from "@shopify/shopify-app-session-storage-sqlite";
 import { restResources } from "@shopify/shopify-api/rest/admin/2023-01";
-
-const DB_PATH = `${process.cwd()}/database.sqlite`;
+import sqlite3 from "sqlite3";
+import { join } from "path";
+import { QRCodesDB } from "./auction-db.js";
 
 // The transactions with Shopify will always be marked as test transactions, unless NODE_ENV is production.
 // See the ensureBilling helper to learn more about billing in this template.
@@ -15,6 +16,12 @@ const billingConfig = {
     interval: BillingInterval.OneTime,
   },
 };
+
+const database = new sqlite3.Database(join(process.cwd(), "database.sqlite"));
+
+// Initialize SQLite DB
+QRCodesDB.db = database;
+QRCodesDB.init();
 
 const shopify = shopifyApp({
   api: {
@@ -29,8 +36,8 @@ const shopify = shopifyApp({
   webhooks: {
     path: "/api/webhooks",
   },
-  // This should be replaced with your preferred storage strategy
-  sessionStorage: new SQLiteSessionStorage(DB_PATH),
+  sessionStorage: new SQLiteSessionStorage(database),
 });
+
 
 export default shopify;

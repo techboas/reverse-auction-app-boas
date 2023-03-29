@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback} from "react";
 import {
   Card,
   Heading,
   TextContainer,
-  DisplayText,
-  TextStyle,
-  TextField,
   Button,
 } from "@shopify/polaris";
 import { Toast } from "@shopify/app-bridge-react";
@@ -16,6 +13,8 @@ import useInput from "./hooks/useInput";
 import moment from "moment";
 import Modal from "./Modal/Modal";
 import ProductPreview from "./ProductPreview";
+import { useParams } from "react-router-dom";
+
 
 export function ProductsCard() {
   const emptyToastProps = { content: null };
@@ -43,10 +42,6 @@ export function ProductsCard() {
     return JSON.stringify(obj) === "{}";
   }
 
-  const handleDateChange = (event) => {
-    console.log("--------", event);
-  };
-
   const handleOptionChange = (event) => {
     setSelectedOption(event.target.value);
   };
@@ -66,6 +61,9 @@ export function ProductsCard() {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    const test = await(fetch)
+    
     const product = await fetchProductById(selectedProduct.id);
     const scheduledActionObject = {
       product: product,
@@ -85,6 +83,49 @@ export function ProductsCard() {
     resetIntervalUnit();
     resetIntervalValue();
   };
+
+  const QRCode = {
+    shopDomain: "boas-marketplace-dev.myshopify.com",
+    createdAt: "2022-06-13",
+    destination: "checkout",
+    title: "My first QR code",
+    product: {}
+  };
+
+  const onSubmit = useCallback(
+    (body) => {
+      (async () => {
+        console.log(body)
+        // const parsedBody = body;
+        // parsedBody.destination = parsedBody.destination[0];
+        const QRCodeId = QRCode?.id;
+        /* construct the appropriate URL to send the API request to based on whether the QR code is new or being updated */
+        const url = QRCodeId ? `/api/auctions/${QRCodeId}` : "/api/auctions";
+        /* a condition to select the appropriate HTTP method: PATCH to update a QR code or POST to create a new QR code */
+        const method = QRCodeId ? "PATCH" : "POST";
+        /* use (authenticated) fetch from App Bridge to send the request to the API and, if successful, clear the form to reset the ContextualSaveBar and parse the response JSON */
+        const response = await fetch(url, {
+          method,
+          shop: "boas-marketplace-dev.myshopify.com",
+          body: JSON.stringify(QRCode),
+          headers: { "Content-Type": "application/json", "shop":"boas-marketplace-dev.myshopify.com" },
+        });
+        if (response.ok) {
+          makeClean();
+          const QRCode = await response.json();
+          /* if this is a new QR code, then save the QR code and navigate to the edit page; this behavior is the standard when saving resources in the Shopify admin */
+          if (!QRCodeId) {
+            navigate(`/qrcodes/${QRCode.id}`);
+            /* if this is a QR code update, update the QR code state in this component */
+          } else {
+            setSelectedProduct(QRCode);
+          }
+        } 
+      })();
+      return { status: "success" };
+    },
+    [QRCode, setSelectedProduct]
+  );
 
   const titleStyle = {
     fontWeight: "600",
@@ -123,6 +164,21 @@ export function ProductsCard() {
   };
 
   const {
+    data: auctions,
+    isLoading: isLoadingAuction,
+    isRefetching: isRefetchingAuction,
+  } = useAppQuery({
+    url: "/api/auctions",
+    reactQueryOptions: {
+      onSuccess: () => {
+        setIsLoading(false);
+      },
+    },
+  });
+
+  console.log(auctions)
+
+  const {
     data,
     refetch: refetchProductCount,
     isLoading: isLoadingCount,
@@ -155,6 +211,7 @@ export function ProductsCard() {
     }
   };
 
+
   const handlePopulate = async () => {
     setIsLoading(true);
     const response = await fetch("/api/products/create");
@@ -172,7 +229,12 @@ export function ProductsCard() {
   };
 
   console.log("App Connected");
+  
 
+  const fetchAuctions = async () => {
+    const response = await fetch(`/api/products/${id}`);
+    
+  }
   const fetchCollection = async () => {
     try {
       const response = await fetch("/api/collections/435393855790");
@@ -190,6 +252,8 @@ export function ProductsCard() {
     };
     // Should not ever set state during rendering, so do this in useEffect instead.
     fetchProducts();
+
+    
     console.log(products);
     console.log(displayProductList);
   }, []);
@@ -203,7 +267,7 @@ export function ProductsCard() {
         sectioned
         primaryFooterAction={{
           content: "Create Scheduled Auction",
-          onAction: submitHandler,
+          onAction: onSubmit,
           loading: isLoading,
         }}
       >
