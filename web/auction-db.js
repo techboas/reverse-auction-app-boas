@@ -31,7 +31,7 @@ export const QRCodesDB = {
     const query = `
       INSERT INTO ${this.qrCodesTableName}
       (shopDomain, title, productId, variantId, handle, priceSet, priceCurrent, startTime, intervalValue,intervalUnit)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id;
     `;
 
@@ -47,6 +47,8 @@ export const QRCodesDB = {
       intervalValue,
       intervalUnit,
     ]);
+
+    console.log(rawResults)
 
     return rawResults[0].id;
   },
@@ -195,7 +197,7 @@ export const QRCodesDB = {
           productId VARCHAR(255) NOT NULL,
           variantId VARCHAR(255) NOT NULL,
           handle VARCHAR(255) NOT NULL,
-          priceSet VARCHAR(255) NOT NULL,
+          priceSet VARCHAR(255),
           priceCurrent VARCHAR(255) NOT NULL,
           startTime VARCHAR(255) NOT NULL,
           intervalValue INTEGER NOT NULL,
@@ -203,6 +205,8 @@ export const QRCodesDB = {
           createdAt DATETIME NOT NULL DEFAULT (datetime(CURRENT_TIMESTAMP, 'localtime'))
         )
       `;
+
+      console.log(query, "this is query");
 
       /* Tell the various CRUD methods that they can execute */
       this.ready = this.__query(query);

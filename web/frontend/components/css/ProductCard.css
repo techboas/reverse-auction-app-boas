@@ -30,3 +30,42 @@
     color: #333;
     margin-top: 8px;
   }
+
+  .ConfirmationDialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 4px;
+    padding: 16px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .ConfirmationDialog-message {
+    margin-bottom: 16px;
+  }
+  
+  .ConfirmationDialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .ConfirmationDialog-confirmButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    margin-right: 8px;
+    cursor: pointer;
+  }
+  
+  .ConfirmationDialog-cancelButton {
+    background-color: white;
+    color: #007bff;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }

@@ -14,17 +14,19 @@ import moment from "moment";
 import Modal from "./Modal/Modal";
 import ProductPreview from "./ProductPreview";
 import { useParams } from "react-router-dom";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 
 export function ProductsCard() {
   const emptyToastProps = { content: null };
-  const [isLoading, setIsLoading] = useState(true);
-  const [toastProps, setToastProps] = useState(emptyToastProps);
   const fetch = useAuthenticatedFetch();
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [toastProps, setToastProps] = useState(emptyToastProps);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+
   const [selectedOption, setSelectedOption] = useState("");
-  const [createMode, setCreateMode] = useState("single");
-  const [productModal, setProductModal] = useState(false);
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState({});
@@ -38,6 +40,8 @@ export function ProductsCard() {
 
   const [tempScheduledActions, setTempScheduledActions] = useState([]);
 
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
   function isEmptyObject(obj) {
     return JSON.stringify(obj) === "{}";
   }
@@ -46,18 +50,12 @@ export function ProductsCard() {
     setSelectedOption(event.target.value);
   };
 
-  const handleCreateModeChange = (event) => {
-    setSelectedOption(event.target.value);
-  };
-
-  const handleSelectProduct = (product) => {
-    setSelectedProduct(product);
-    setDisplayProductList(false);
-  };
 
   function handleProductClick() {
     setDisplayProductList(!displayProductList);
   }
+
+  let QRCode = {}
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -65,6 +63,7 @@ export function ProductsCard() {
     const test = await(fetch)
     
     const product = await fetchProductById(selectedProduct.id);
+    console.log(product)
     const scheduledActionObject = {
       product: product,
       reservePrice,
@@ -76,26 +75,45 @@ export function ProductsCard() {
     };
 
     console.log(scheduledActionObject);
-    setTempScheduledActions((oldArray) => [...oldArray, scheduledActionObject]);
-    console.log(tempScheduledActions);
 
     resetReservePrice();
     resetIntervalUnit();
     resetIntervalValue();
   };
 
-  const QRCode = {
-    shopDomain: "boas-marketplace-dev.myshopify.com",
-    createdAt: "2022-06-13",
-    destination: "checkout",
-    title: "My first QR code",
-    product: {}
-  };
+  const handleDeleteAuction = useCallback(async (auction) => {
+    /* The isDeleting state disables the download button and the delete QR code button to show the merchant that an action is in progress */
+    setIsDeleting(true);
+    const response = await fetch(`/api/auctions/${auction.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+  
+    if (response.ok) {
+      console.log('delete successfully')
+    }
+  }, [tempScheduledActions]);
+
+
 
   const onSubmit = useCallback(
     (body) => {
       (async () => {
-        console.log(body)
+
+        const product = await fetchProductById(selectedProduct.id);
+        
+        console.log(product)
+        QRCode = {
+          title: product.title,
+          productId : product.id,
+          variantId : product.variants[0].id,
+          handle : product.handle,
+          priceSet : product.variants[0].price,
+          priceCurrent : reservePrice,
+          startTime: selectedDate,
+          intervalValue: intervalValue,
+          intervalUnit: intervalUnit,
+        };
         // const parsedBody = body;
         // parsedBody.destination = parsedBody.destination[0];
         const QRCodeId = QRCode?.id;
@@ -106,16 +124,14 @@ export function ProductsCard() {
         /* use (authenticated) fetch from App Bridge to send the request to the API and, if successful, clear the form to reset the ContextualSaveBar and parse the response JSON */
         const response = await fetch(url, {
           method,
-          shop: "boas-marketplace-dev.myshopify.com",
           body: JSON.stringify(QRCode),
-          headers: { "Content-Type": "application/json", "shop":"boas-marketplace-dev.myshopify.com" },
+          headers: { "Content-Type": "application/json"},
         });
         if (response.ok) {
-          makeClean();
           const QRCode = await response.json();
           /* if this is a new QR code, then save the QR code and navigate to the edit page; this behavior is the standard when saving resources in the Shopify admin */
           if (!QRCodeId) {
-            navigate(`/qrcodes/${QRCode.id}`);
+            //navigate(`/qrcodes/${QRCode.id}`);
             /* if this is a QR code update, update the QR code state in this component */
           } else {
             setSelectedProduct(QRCode);
@@ -163,20 +179,7 @@ export function ProductsCard() {
     padding: "8px",
   };
 
-  const {
-    data: auctions,
-    isLoading: isLoadingAuction,
-    isRefetching: isRefetchingAuction,
-  } = useAppQuery({
-    url: "/api/auctions",
-    reactQueryOptions: {
-      onSuccess: () => {
-        setIsLoading(false);
-      },
-    },
-  });
 
-  console.log(auctions)
 
   const {
     data,
@@ -191,6 +194,7 @@ export function ProductsCard() {
       },
     },
   });
+
 
   const toastMarkup = toastProps.content && !isRefetchingCount && (
     <Toast {...toastProps} onDismiss={() => setToastProps(emptyToastProps)} />
@@ -230,11 +234,6 @@ export function ProductsCard() {
 
   console.log("App Connected");
   
-
-  const fetchAuctions = async () => {
-    const response = await fetch(`/api/products/${id}`);
-    
-  }
   const fetchCollection = async () => {
     try {
       const response = await fetch("/api/collections/435393855790");
@@ -246,16 +245,32 @@ export function ProductsCard() {
     }
   };
 
+  const {
+    data: auctions,
+    isLoading: isLoadingAuction,
+    isRefetching: isRefetchingAuction,
+  } = useAppQuery({
+    url: "/api/auctions",
+    reactQueryOptions: {
+      onSuccess: () => {
+        setIsLoading(false);
+      },
+    },
+  });
+
   useEffect(() => {
     const fetchProducts = async () => {
       setProducts(await fetchCollection());
     };
+
+     const fetchAuctions = async () => {
+      setTempScheduledActions(await auctions);
+    };
+
     // Should not ever set state during rendering, so do this in useEffect instead.
     fetchProducts();
-
+    fetchAuctions();
     
-    console.log(products);
-    console.log(displayProductList);
   }, []);
 
   return (
@@ -271,23 +286,7 @@ export function ProductsCard() {
           loading: isLoading,
         }}
       >
-        {/* <Button onClick={handleProductClick}>Select Products</Button> */}
 
-        {/* <div style={inputDivStyle}>
-          {!displayProductList
-            ? null
-            : products.map((product) => {
-                return (
-                  <div key={product.id}>
-                    <h2>name: {product.title}</h2>
-                    <Button onClick={() => handleSelectProduct(product)}>
-                      Select
-                    </Button>
-                    <hr />
-                  </div>
-                );
-              })}
-        </div> */}
         <div style={inputDivStyle}>
           <Modal
             products={products}
@@ -295,37 +294,6 @@ export function ProductsCard() {
           />
           {isEmptyObject(selectedProduct) ? null : <ProductPreview product={selectedProduct}/>}
         </div>
-
-        {/* <div style={inputDivStyle}>
-          <TextContainer spacing="loose">
-            <p>
-              Sample products are created with a default title and price. You
-              can remove them at any time.
-            </p>
-            <div className="form-group">
-              <label>
-                <input
-                  type="radio"
-                  value="fixed"
-                  checked={selectedOption === "fixed"}
-                  onChange={handleOptionChange}
-                />
-                Fixed
-              </label>
-            </div>
-            <div className="form-group">
-              <label>
-                <input
-                  type="radio"
-                  value="option2"
-                  checked={selectedOption === "option2"}
-                  onChange={handleOptionChange}
-                />
-                Drop Price Range
-              </label>
-            </div>
-          </TextContainer>
-        </div> */}
 
         <div style={inputDivStyle}>
           <h2 style={titleStyle}>Reserve Price</h2>
@@ -368,7 +336,7 @@ export function ProductsCard() {
         </div>
       </Card>
 
-      {tempScheduledActions.length === 0 ? null : (
+      {tempScheduledActions?.length === 0 ? null : (
         <Card title="Scheduled Actions">
           <table style={tableStyle}>
             <thead>
@@ -378,31 +346,36 @@ export function ProductsCard() {
                 <th style={thStyle}>Reserve Price</th>
                 <th style={thStyle}>Start Time</th>
                 <th style={thStyle}>Interval</th>
+                <th style={thStyle}></th>
               </tr>
             </thead>
             <tbody>
-              {tempScheduledActions.map((auction) => {
+              {tempScheduledActions?.map((auction) => {
                 return (
                   <tr key={auction.id}>
-                    <td key={auction.id} style={tdStyle}>
-                      {auction?.product?.title}
+                    <td style={tdStyle}>
+                      {auction?.title}
                     </td>
-                    <td key={auction.id} style={tdStyle}>
-                      {auction?.product?.variants[0]?.price}
+                    <td style={tdStyle}>
+                      {auction?.priceSet}
                     </td>
-                    <td key={auction.id} style={tdStyle}>
-                      {auction?.reservePrice}
+                    <td style={tdStyle}>
+                      {auction?.priceCurrent}
                     </td>
-                    <td key={auction.id} style={tdStyle}>
-                      {auction?.date.year()}
+                    <td style={tdStyle}>
+                      {auction?.startTime}
                     </td>
-                    <td key={auction.id} style={tdStyle}>
-                      {auction?.interval.value} {auction.interval.unit}
+                    <td style={tdStyle}>
+                      {auction?.intervalValue} {auction.intervalUnit}
+                    </td>
+                    <td style={tdStyle}>
+                    <Button onClick={() => handleDeleteAuction(auction)}>Delete</Button>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
+            <ConfirmationDialog/>
           </table>
         </Card>
       )}

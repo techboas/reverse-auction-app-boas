@@ -15,6 +15,7 @@ import {
   getShopUrlFromSession,
   parseQrCodeBody,
   formatQrCodeResponse,
+  parseAuctionBody
 } from "../helpers/auction.js";
 
 const DISCOUNTS_QUERY = `
@@ -81,16 +82,19 @@ export default function applyQrCodeApiEndpoints(app) {
 
   app.post("/api/auctions", async (req, res) => {
     try {
-      console.log(req.body)
+
       const id = await QRCodesDB.create({
-        ...(await parseQrCodeBody(req)),
+        ...(await parseAuctionBody(req)),
 
         /* Get the shop from the authorization header to prevent users from spoofing the data */
         shopDomain: await getShopUrlFromSession(req, res),
       });
+
       const response = await formatQrCodeResponse(req, res, [
         await QRCodesDB.read(id),
       ]);
+
+
       res.status(201).send(response[0]);
     } catch (error) {
       res.status(500).send(error.message);
@@ -136,9 +140,9 @@ export default function applyQrCodeApiEndpoints(app) {
     }
   });
 
-  app.delete("/api/auction/:id", async (req, res) => {
+  app.delete("/api/auctions/:id", async (req, res) => {
     const qrcode = await getQrCodeOr404(req, res);
-
+    console.log(qrcode)
     if (qrcode) {
       await QRCodesDB.delete(req.params.id);
       res.status(200).send();

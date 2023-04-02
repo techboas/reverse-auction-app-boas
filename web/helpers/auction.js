@@ -33,7 +33,9 @@ const QR_CODE_ADMIN_QUERY = `
 
 export async function getQrCodeOr404(req, res, checkDomain = true) {
   try {
+    console.log('reached here')
     const response = await QRCodesDB.read(req.params.id);
+    console.log(response)
     if (
       response === undefined ||
       (checkDomain &&
@@ -76,6 +78,20 @@ export async function parseQrCodeBody(req, res) {
   };
 }
 
+export async function parseAuctionBody(req, res) {
+  return {
+    title: req.body.title,
+    productId: req.body.productId,
+    variantId: req.body.variantId,
+    handle: req.body.handle,
+    priceSet: req.body.priceSet,
+    priceCurrent: req.body.priceCurrent,
+    startTime: req.body.startTime,
+    intervalValue: req.body.intervalValue,
+    intervalUnit: req.body.intervalUnit,
+  };
+}
+
 /*
   Replaces the productId with product data queried from the Shopify GraphQL Admin API
 */
@@ -83,71 +99,67 @@ export async function formatQrCodeResponse(req, res, rawCodeData) {
   const ids = [];
 
   /* Get every product, variant and discountID that was queried from the database */
-  rawCodeData.forEach(({ productId, discountId, variantId }) => {
+  rawCodeData.forEach(({ productId, variantId }) => {
     ids.push(productId);
     ids.push(variantId);
-
-    if (discountId) {
-      ids.push(discountId);
-    }
   });
 
-  /* Instantiate a new GraphQL client to query the Shopify GraphQL Admin API */
-  const client = new shopify.api.clients.Graphql({
-    session: res.locals.shopify.session,
-  });
+  // /* Instantiate a new GraphQL client to query the Shopify GraphQL Admin API */
+  // // const client = new shopify.api.clients.Graphql({
+  // //   session: res.locals.shopify.session,
+  // // });
 
-  /* Query the Shopify GraphQL Admin API */
-  const adminData = await client.query({
-    data: {
-      query: QR_CODE_ADMIN_QUERY,
+  // /* Query the Shopify GraphQL Admin API */
+  // // const adminData = await client.query({
+  // //   data: {
+  // //     query: QR_CODE_ADMIN_QUERY,
 
-      /* The IDs that are pulled from the app's database are used to query product, variant and discount information */
-      variables: { ids },
-    },
-  });
+  // //     /* The IDs that are pulled from the app's database are used to query product, variant and discount information */
+  // //     variables: { ids },
+  // //   },
+  // // });
 
-  /*
-    Replace the product, discount and variant IDs with the data fetched using the Shopify GraphQL Admin API.
-  */
-  const formattedData = rawCodeData.map((qrCode) => {
-    const product = adminData.body.data.nodes.find(
-      (node) => qrCode.productId === node?.id
-    ) || {
-      title: "Deleted product",
-    };
+  // /*
+  //   Replace the product, discount and variant IDs with the data fetched using the Shopify GraphQL Admin API.
+  // */
+  // const formattedData = rawCodeData.map((qrCode) => {
+  //   const product = adminData.body.data.nodes.find(
+  //     (node) => qrCode.productId === node?.id
+  //   ) || {
+  //     title: "Deleted product",
+  //   };
 
-    const discountDeleted =
-      qrCode.discountId &&
-      !adminData.body.data.nodes.find((node) => qrCode.discountId === node?.id);
+  //   const discountDeleted =
+  //     qrCode.discountId &&
+  //     !adminData.body.data.nodes.find((node) => qrCode.discountId === node?.id);
 
-    /*
-      A user might create a QR code with a discount code and then later delete that discount code.
-      For optimal UX it's important to handle that edge case.
-      Use mock data so that the frontend knows how to interpret this QR Code.
-    */
-    if (discountDeleted) {
-      QRCodesDB.update(qrCode.id, {
-        ...qrCode,
-        discountId: "",
-        discountCode: "",
-      });
-    }
+  //   /*
+  //     A user might create a QR code with a discount code and then later delete that discount code.
+  //     For optimal UX it's important to handle that edge case.
+  //     Use mock data so that the frontend knows how to interpret this QR Code.
+  //   */
+  //   if (discountDeleted) {
+  //     QRCodesDB.update(qrCode.id, {
+  //       ...qrCode,
+  //       discountId: "",
+  //       discountCode: "",
+  //     });
+  //   }
 
-    /*
-      Merge the data from the app's database with the data queried from the Shopify GraphQL Admin API
-    */
-    const formattedQRCode = {
-      ...qrCode,
-      product,
-      discountCode: discountDeleted ? "" : qrCode.discountCode,
-    };
+  //   /*
+  //     Merge the data from the app's database with the data queried from the Shopify GraphQL Admin API
+  //   */
+  //   const formattedQRCode = {
+  //     ...qrCode,
+  //     product,
+  //     discountCode: discountDeleted ? "" : qrCode.discountCode,
+  //   };
 
-    /* Since product.id already exists, productId isn't required */
-    delete formattedQRCode.productId;
+  //   /* Since product.id already exists, productId isn't required */
+  //   delete formattedQRCode.productId;
 
-    return formattedQRCode;
-  });
+  //   return formattedQRCode;
+  // });
 
-  return formattedData;
+  return rawCodeData;
 }
