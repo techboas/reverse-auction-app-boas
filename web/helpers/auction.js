@@ -33,9 +33,7 @@ const QR_CODE_ADMIN_QUERY = `
 
 export async function getQrCodeOr404(req, res, checkDomain = true) {
   try {
-    console.log('reached here')
     const response = await QRCodesDB.read(req.params.id);
-    console.log(response)
     if (
       response === undefined ||
       (checkDomain &&

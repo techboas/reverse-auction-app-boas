@@ -1,36 +1,26 @@
 import React, { useState } from 'react';
 import './css/ProductCard.css';
 
-function ConfirmationDialog({ message, onConfirm, onCancel }) {
-  const [showConfirmation, setShowConfirmation] = useState(false);
+function ConfirmationDialog({ message, onConfirm, deleteAuction, handleDisplayConfirmationDialog }) {
 
   const handleConfirmClick = () => {
-    onConfirm();
-    setShowConfirmation(false);
+    deleteAuction();
   };
 
   const handleCancelClick = () => {
-    onCancel();
-    setShowConfirmation(false);
-  };
-
-  const handleOpenDialog = () => {
-    setShowConfirmation(true);
+    handleDisplayConfirmationDialog()
   };
 
   return (
     <div>
-      
-      {showConfirmation && (
-        <div className="ConfirmationDialog">
+      <div className="ConfirmationDialog">
           <p className="ConfirmationDialog-message">{message}</p>
           <div className="ConfirmationDialog-buttons">
-          <button onClick={handleOpenDialog}>Delete</button>
+          <h1>Delete Item: XXXX From Auction list?</h1>
             <button onClick={handleConfirmClick} className="ConfirmationDialog-confirmButton">Yes</button>
             <button onClick={handleCancelClick} className="ConfirmationDialog-cancelButton">No</button>
           </div>
         </div>
-      )}
     </div>
   );
 }
