@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import './css/ProductCard.css';
 
-function ConfirmationDialog({ message, onConfirm, deleteAuction, handleDisplayConfirmationDialog }) {
+function ConfirmationDialog({ message,title, auctionItem, onConfirm, deleteAuction, handleDisplayConfirmationDialog }) {
 
   const handleConfirmClick = () => {
-    deleteAuction();
+    console.log(auctionItem)
+    console.log('reached here',auctionItem.id)
+    deleteAuction(auctionItem.id);
   };
 
   const handleCancelClick = () => {
@@ -15,8 +17,9 @@ function ConfirmationDialog({ message, onConfirm, deleteAuction, handleDisplayCo
     <div>
       <div className="ConfirmationDialog">
           <p className="ConfirmationDialog-message">{message}</p>
+          <h1 className="ConfirmationDialog-title">Delete Item: {auctionItem.title} From Auction list?</h1>
+
           <div className="ConfirmationDialog-buttons">
-          <h1>Delete Item: XXXX From Auction list?</h1>
             <button onClick={handleConfirmClick} className="ConfirmationDialog-confirmButton">Yes</button>
             <button onClick={handleCancelClick} className="ConfirmationDialog-cancelButton">No</button>
           </div>

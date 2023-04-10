@@ -246,9 +246,8 @@ export function ProductsCard() {
 
 
   useEffect(() => {
-    fetchProducts().then(console.log(products));
+    fetchProducts();
     fetchAuctions();
-    console.log("called")
   }, [isLoadingAuction,isDeleting,isLoading]);
 
   return (

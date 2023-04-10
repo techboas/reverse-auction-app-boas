@@ -126,9 +126,9 @@ export default function applyQrCodeApiEndpoints(app) {
         //TODO: Update new price to database
         try {
           console.log(rawCodeData[0])
-          await QRCodesDB.update(rawCodeData[0].id, await parseQrCodeBody(rawCodeData[0]));
+          console.log(await QRCodesDB.update(rawCodeData[0].id,rawCodeData[0]));
           const responseUpdate = await formatQrCodeResponse(req, res, [
-            await QRCodesDB.read(req.params.id),
+            await QRCodesDB.read(rawCodeData[0].id),
           ]);
 
           console.log(responseUpdate)
@@ -185,7 +185,9 @@ export default function applyQrCodeApiEndpoints(app) {
 
   app.delete("/api/auctions/:id", async (req, res) => {
     const qrcode = await getQrCodeOr404(req, res);
+    
     if (qrcode) {
+      console.log(qrcode);
       await QRCodesDB.delete(req.params.id);
       res.status(200).send();
     }

@@ -1,9 +1,7 @@
-import {useState} from "react";
+import { useState } from "react";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { Button } from "@shopify/polaris";
 import moment from "moment";
-
-
 
 const tableStyle = {
   borderCollapse: "collapse",
@@ -24,17 +22,36 @@ const tdStyle = {
   padding: "8px",
 };
 
-const AuctionTable = (props) => {
-  const [showConfirmation, setShowConfirmation] = useState(false)
+const AuctionTableRow = ({ auction, handleDisplayConfirmationDialog }) => (
+  <tr key={auction.id}>
+    <td style={tdStyle}>{auction.title}</td>
+    <td style={tdStyle}>{auction.priceSet}</td>
+    <td style={tdStyle}>{auction.priceCurrent}</td>
+    <td style={tdStyle}>{moment(auction.startTime).format("DD-MM-YYYY")}</td>
+    <td style={tdStyle}>
+      {auction.intervalValue} {auction.intervalUnit}
+    </td>
+    <td style={tdStyle}>
+      <Button onClick={() => handleDisplayConfirmationDialog(auction)}>
+        Delete
+      </Button>
+    </td>
+  </tr>
+);
 
-   
-  function handleDisplayConfirmationDialog() {
+const AuctionTable = (props) => {
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedAuction, setSelectedAuction] = useState(null);
+
+  function handleDisplayConfirmationDialog(auction) {
+    setSelectedAuction(auction);
     setShowConfirmation(!showConfirmation);
   }
 
-  function deleteAuction(id){
+  function deleteAuction(id) {
+    console.log(id);
     handleDisplayConfirmationDialog();
-    console.log('reached delete function')
+    console.log("reached delete function");
     props.handleDeleteAuction(id);
   }
 
@@ -53,28 +70,26 @@ const AuctionTable = (props) => {
         </thead>
         <tbody>
           {props.scheduledAuctions?.map((auction) => {
-            console.log(auction.startTime)
             return (
-              <tr key={auction.id}>
-                <td style={tdStyle}>{auction?.title}</td>
-                <td style={tdStyle}>{auction?.priceSet}</td>
-                <td style={tdStyle}>{auction?.priceCurrent}</td>
-                <td style={tdStyle}>{moment(auction.startTime).format('DD-MM-YYYY')}</td>
-                <td style={tdStyle}>
-                  {auction?.intervalValue} {auction.intervalUnit}
-                </td>
-                <td style={tdStyle}>
-                  <Button onClick={handleDisplayConfirmationDialog}>
-                    Delete
-                  </Button>
-                </td>
-                      {showConfirmation && <ConfirmationDialog deleteAuction={(id)=>{deleteAuction(auction.id)}} handleDisplayConfirmationDialog={handleDisplayConfirmationDialog}/>}
-              </tr>
+              <AuctionTableRow
+                key={auction.id}
+                auction={auction}
+                handleDisplayConfirmationDialog={
+                  handleDisplayConfirmationDialog
+                }
+              />
             );
           })}
+          {showConfirmation && (
+            <ConfirmationDialog
+              auctionItem={selectedAuction}
+              title={selectedAuction.title}
+              deleteAuction={deleteAuction}
+              handleDisplayConfirmationDialog={handleDisplayConfirmationDialog}
+            />
+          )}
         </tbody>
       </table>
-  
     </div>
   );
 };
