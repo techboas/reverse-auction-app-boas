@@ -79,19 +79,6 @@ export const QRCodesDB = {
   ) {
     await this.ready;
 
-    console.log('update function called with id:', id);
-    console.log('input object:', {
-      title,
-      productId,
-      variantId,
-      handle,
-      priceSet,
-      priceCurrent,
-      startTime,
-      intervalValue,
-      intervalUnit,
-    });
-
     const query = `
       UPDATE ${this.qrCodesTableName}
       SET

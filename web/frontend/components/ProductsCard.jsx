@@ -56,7 +56,6 @@ export function ProductsCard() {
     const test = await fetch;
 
     const product = await fetchProductById(selectedProduct.id);
-    console.log(product);
     const scheduledActionObject = {
       product: product,
       reservePrice,
@@ -82,7 +81,7 @@ export function ProductsCard() {
 
       if (response.ok) {
         console.log("delete successfully");
-        fetchAuctions()
+        fetchAuctions();
         setIsDeleting(false);
         console.log("isDeleting set to false");
       }
@@ -93,48 +92,57 @@ export function ProductsCard() {
   const onSubmit = useCallback(
     (body) => {
       (async () => {
-        setIsLoading(true)
-        const product = await fetchProductById(selectedProduct.id);
+        setIsLoading(true);
 
-        console.log(product);
-        QRCode = {
-          title: product.title,
-          productId: product.id,
-          variantId: product.variants[0].id,
-          handle: product.handle,
-          priceSet: product.variants[0].price,
-          priceCurrent: reservePrice,
-          startTime: selectedDate,
-          intervalValue: intervalValue,
-          intervalUnit: intervalUnit,
-        };
-        // const parsedBody = body;
-        // parsedBody.destination = parsedBody.destination[0];
-        const QRCodeId = QRCode?.id;
-        /* construct the appropriate URL to send the API request to based on whether the QR code is new or being updated */
-        const url = QRCodeId ? `/api/auctions/${QRCodeId}` : "/api/auctions";
-        /* a condition to select the appropriate HTTP method: PATCH to update a QR code or POST to create a new QR code */
-        const method = QRCodeId ? "PATCH" : "POST";
-        /* use (authenticated) fetch from App Bridge to send the request to the API and, if successful, clear the form to reset the ContextualSaveBar and parse the response JSON */
-        const response = await fetch(url, {
-          method,
-          body: JSON.stringify(QRCode),
-          headers: { "Content-Type": "application/json" },
-        });
-        if (response.ok) {
-          const QRCode = await response.json();
-          /* if this is a new QR code, then save the QR code and navigate to the edit page; this behavior is the standard when saving resources in the Shopify admin */
-          if (!QRCodeId) {
-            setIsLoading(false);
-            //navigate(`/qrcodes/${QRCode.id}`);
-            /* if this is a QR code update, update the QR code state in this component */
+        try {
+          if (
+            selectedProduct.reservePrice >= selectedProduct.variants[0].price
+          ) {
+            console.log(
+              "reserve price cannot be less or equal to actual price!"
+            );
+          }
+          QRCode = {
+            title: selectedProduct.title,
+            productId: selectedProduct.id,
+            variantId: selectedProduct.variants[0].id,
+            handle: selectedProduct.handle,
+            priceSet: selectedProduct.variants[0].price,
+            priceCurrent: reservePrice,
+            startTime: selectedDate,
+            intervalValue: intervalValue,
+            intervalUnit: intervalUnit,
+          };
+          // const parsedBody = body;
+          // parsedBody.destination = parsedBody.destination[0];
+          const QRCodeId = QRCode?.id;
+          /* construct the appropriate URL to send the API request to based on whether the QR code is new or being updated */
+          const url = QRCodeId ? `/api/auctions/${QRCodeId}` : "/api/auctions";
+          /* a condition to select the appropriate HTTP method: PATCH to update a QR code or POST to create a new QR code */
+          const method = QRCodeId ? "PATCH" : "POST";
+          /* use (authenticated) fetch from App Bridge to send the request to the API and, if successful, clear the form to reset the ContextualSaveBar and parse the response JSON */
+          const response = await fetch(url, {
+            method,
+            body: JSON.stringify(QRCode),
+            headers: { "Content-Type": "application/json" },
+          });
+
+
+          if (response.ok) {
+            const QRCode = await response.json();
+            /* if this is a new QR code, then save the QR code and navigate to the edit page; this behavior is the standard when saving resources in the Shopify admin */
+            if (!QRCodeId) {
+              //navigate(`/qrcodes/${QRCode.id}`);
+              /* if this is a QR code update, update the QR code state in this component */
+            } else {
+              setSelectedProduct(QRCode);
+            }
           } else {
-            
-            setSelectedProduct(QRCode);
             setIsLoading(false);
           }
-        }
-        else{
+        } catch (error) {
+          console.log(error);
+        } finally {
           setIsLoading(false);
         }
       })();
@@ -178,8 +186,9 @@ export function ProductsCard() {
     <Toast {...toastProps} onDismiss={() => setToastProps(emptyToastProps)} />
   );
 
-  const handleProductSelect = (product) => {
-    setSelectedProduct(product);
+  const handleProductSelect = async (product) => {
+    const productData = await fetchProductById(product.id);
+    setSelectedProduct(productData);
   };
 
   const fetchProductById = async (id) => {
@@ -236,7 +245,6 @@ export function ProductsCard() {
   });
 
   const fetchProducts = async () => {
-    
     setProducts(await fetchCollection());
   };
 
@@ -244,17 +252,18 @@ export function ProductsCard() {
     setScheduledAuctions(await auctions);
   };
 
-
   useEffect(() => {
     fetchProducts();
     fetchAuctions();
-  }, [isLoadingAuction,isDeleting,isLoading]);
+    setIsLoading(false);
+    console.log(isLoadingAuction,isDeleting)
+  }, [isLoadingAuction, isDeleting, isLoading]);
 
   return (
     <>
       {toastMarkup}
 
-      <Card
+      {!isLoading && <Card
         title="Create A Single Auction"
         sectioned
         primaryFooterAction={{
@@ -312,15 +321,16 @@ export function ProductsCard() {
             </select>
           </label>
         </div>
-      </Card>
-      <Card title="Scheduled Actions">
+      </Card>}
+      {(!isLoadingAuction || !isDeleting) && <Card title="Scheduled Actions">
         {scheduledAuctions && (
           <AuctionTable
             handleDeleteAuction={handleDeleteAuction}
             scheduledAuctions={scheduledAuctions}
           />
         )}
-      </Card>
+      </Card>}
+      
 
       <Card
         title="Reserve Price Settings"

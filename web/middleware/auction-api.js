@@ -95,40 +95,35 @@ export default function applyQrCodeApiEndpoints(app) {
       const response = await formatQrCodeResponse(req, res, [
         await QRCodesDB.read(id),
       ]);
-      schedule.scheduleJob("*/2 * * * *", async function () {
+
+      const scheduleJob = schedule.scheduleJob("*/2 * * * *", async function () {
         const rawCodeData = await formatQrCodeResponse(req, res, [
           await QRCodesDB.read(id),
         ]);
 
-        var today = new Date();
-        var date =
-          today.getFullYear() +
-          "-" +
-          (today.getMonth() + 1) +
-          "-" +
-          today.getDate();
-        var time =
-          today.getHours() +
-          ":" +
-          today.getMinutes() +
-          ":" +
-          today.getSeconds();
-        var dateTime = date + " " + time;
+        const updatedData = rawCodeData[0];
 
-        console.log("ran----------------", dateTime);
-        console.log(rawCodeData);
 
+        console.log(updatedData.priceSet, updatedData.priceCurrent)
+        console.log("line break --------------------------------")
         //TODO: reduce price
-        if(rawCodeData.priceSet >= rawCodeData.priceCurrent){
-          rawCodeData[0].priceSet = rawCodeData[0].priceSet - 1;
+        if(updatedData.priceSet >= updatedData.priceCurrent){
+          updatedData.priceSet = updatedData.priceSet - 1;
+
+          //If priceSet is lower than reserve price cancel the schedule job
+          if (updatedData.priceSet < updatedData.reservePrice) {
+            console.log("Price has reached reserve price. Stopping job...");
+            job.cancel();
+          }
         }
+
+        console.log(updatedData.priceSet, updatedData.priceCurrent)
 
         //TODO: Update new price to database
         try {
-          console.log(rawCodeData[0])
-          console.log(await QRCodesDB.update(rawCodeData[0].id,rawCodeData[0]));
+          await QRCodesDB.update(updatedData.id,updatedData);
           const responseUpdate = await formatQrCodeResponse(req, res, [
-            await QRCodesDB.read(rawCodeData[0].id),
+            await QRCodesDB.read(updatedData.id),
           ]);
 
           console.log(responseUpdate)
