@@ -53,6 +53,16 @@ export const QRCodesDB = {
     return rawResults[0].id;
   },
 
+  updatePrice: async function(
+    id,
+    {
+      priceCurrent
+    }
+  ){
+    await this.ready
+
+  },
+
   update: async function (
     id,
     {
@@ -80,7 +90,8 @@ export const QRCodesDB = {
         priceCurrent = ?,
         startTime = ?,
         intervalValue = ?,
-        intervalUnit = ?,
+        intervalUnit = ?
+        
       WHERE
         id = ?;
     `;

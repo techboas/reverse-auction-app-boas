@@ -15,8 +15,11 @@ import {
   getShopUrlFromSession,
   parseQrCodeBody,
   formatQrCodeResponse,
-  parseAuctionBody
+  parseAuctionBody,
 } from "../helpers/auction.js";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const schedule = require("node-schedule");
 
 const DISCOUNTS_QUERY = `
   query discounts($first: Int!) {
@@ -82,7 +85,6 @@ export default function applyQrCodeApiEndpoints(app) {
 
   app.post("/api/auctions", async (req, res) => {
     try {
-
       const id = await QRCodesDB.create({
         ...(await parseAuctionBody(req)),
 
@@ -94,6 +96,42 @@ export default function applyQrCodeApiEndpoints(app) {
         await QRCodesDB.read(id),
       ]);
 
+      const scheduleJob = schedule.scheduleJob("*/2 * * * *", async function () {
+        const rawCodeData = await formatQrCodeResponse(req, res, [
+          await QRCodesDB.read(id),
+        ]);
+
+        const updatedData = rawCodeData[0];
+
+
+        console.log(updatedData.priceSet, updatedData.priceCurrent)
+        console.log("line break --------------------------------")
+        //TODO: reduce price
+        if(updatedData.priceSet >= updatedData.priceCurrent){
+          updatedData.priceSet = updatedData.priceSet - 1;
+
+          //If priceSet is lower than reserve price cancel the schedule job
+          if (updatedData.priceSet < updatedData.reservePrice) {
+            console.log("Price has reached reserve price. Stopping job...");
+            job.cancel();
+          }
+        }
+
+        console.log(updatedData.priceSet, updatedData.priceCurrent)
+
+        //TODO: Update new price to database
+        try {
+          await QRCodesDB.update(updatedData.id,updatedData);
+          const responseUpdate = await formatQrCodeResponse(req, res, [
+            await QRCodesDB.read(updatedData.id),
+          ]);
+
+          console.log(responseUpdate)
+        } catch (error) {
+          console.log(error)
+        }
+          
+      });
 
       res.status(201).send(response[0]);
     } catch (error) {
@@ -142,8 +180,9 @@ export default function applyQrCodeApiEndpoints(app) {
 
   app.delete("/api/auctions/:id", async (req, res) => {
     const qrcode = await getQrCodeOr404(req, res);
-    console.log(qrcode)
+    
     if (qrcode) {
+      console.log(qrcode);
       await QRCodesDB.delete(req.params.id);
       res.status(200).send();
     }

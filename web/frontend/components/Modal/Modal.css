@@ -17,6 +17,11 @@ body.active-modal {
     display:flex;
     margin-bottom: 0.5rem;
     justify-content: space-between;
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    align-items: center;
 }
 
 .product-entry h2{
@@ -24,6 +29,13 @@ body.active-modal {
     margin-top: auto;
     margin-bottom: auto;
     justify-content: space-between;
+    margin-left: 0.5rem;
+    margin-right: 10rem;
+}
+
+.product-entry-img{
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .modal-list{
